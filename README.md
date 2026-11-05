@@ -3,7 +3,7 @@
 > *"Style-ta Dhoro, Nijer Moto Cholo"*
 
 DHORA is a complete, production-grade AI-powered personal wardrobe management and fashion lifestyle application built with **React Native (Expo Router v4, TypeScript)** on the frontend and **Node.js + Express + TypeScript + MongoDB** on the backend, featuring Google Gemini AI integration via the official `@google/genai` SDK.
-
+link: https://dhora-dhora-mobile.vercel.app/
 ---
 
 ## 🌟 Key Functional Pillars
