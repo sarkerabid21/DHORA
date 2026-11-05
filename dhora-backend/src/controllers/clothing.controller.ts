@@ -438,7 +438,7 @@ export const deleteClothingItem = async (
 
     if (isDbConnected()) {
       try {
-        await ClothingItem.findOneAndDelete({ _id: id, userId });
+        await ClothingItem.findOneAndDelete({ _id: id });
       } catch (err) {}
     }
 

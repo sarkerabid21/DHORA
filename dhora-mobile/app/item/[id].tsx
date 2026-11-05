@@ -8,6 +8,9 @@ import {
   Image,
   TouchableOpacity,
   Alert,
+  Modal,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -39,6 +42,8 @@ export default function ItemDetailScreen() {
   const { theme } = useThemeStore();
   const { items, toggleFavorite, updateStatus, deleteItem } = useWardrobeStore();
   const [showVirtualModel, setShowVirtualModel] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const item = items.find((i) => i._id === id);
 
@@ -68,22 +73,20 @@ export default function ItemDetailScreen() {
     updateStatus(item._id, newStatus);
   };
 
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteItem(item._id);
+      setShowDeleteConfirm(false);
+      router.back();
+    } catch (e) {
+      setIsDeleting(false);
+      Alert.alert('Error', 'Could not delete item. Please try again.');
+    }
+  };
+
   const handleDelete = () => {
-    Alert.alert(
-      'Remove from Closet',
-      `Are you sure you want to remove "${item.name}" from your wardrobe?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteItem(item._id);
-            router.back();
-          },
-        },
-      ]
-    );
+    setShowDeleteConfirm(true);
   };
 
   return (
@@ -379,6 +382,18 @@ export default function ItemDetailScreen() {
             icon={<Sparkles size={18} color="#FFFFFF" />}
             style={{ marginTop: SPACING.md }}
           />
+
+          {/* Direct Delete from Wardrobe Button */}
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={[
+              styles.deleteFullBtn,
+              { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' },
+            ]}
+          >
+            <Trash2 size={16} color="#DC2626" />
+            <Text style={styles.deleteFullBtnText}>Delete Garment from Wardrobe</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -387,6 +402,59 @@ export default function ItemDetailScreen() {
         onClose={() => setShowVirtualModel(false)}
         focusItem={item}
       />
+
+      {/* Delete Confirmation Modal (Cross-platform Web & Mobile) */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.deleteModalOverlay}>
+          <View style={[styles.deleteModalCard, { backgroundColor: theme.surface }]}>
+            <View style={styles.deleteIconCircle}>
+              <Trash2 size={26} color="#EF4444" />
+            </View>
+
+            <Text style={[styles.deleteModalTitle, { color: theme.textPrimary }]}>
+              Remove from Wardrobe?
+            </Text>
+
+            <Text style={[styles.deleteModalDesc, { color: theme.textSecondary }]}>
+              Are you sure you want to remove "{item.name}"? This garment will be permanently deleted from your digital closet.
+            </Text>
+
+            <View style={styles.deleteModalBtnRow}>
+              <TouchableOpacity
+                disabled={isDeleting}
+                onPress={() => setShowDeleteConfirm(false)}
+                style={[
+                  styles.deleteModalBtn,
+                  { backgroundColor: theme.surfaceVariant, borderColor: theme.border },
+                ]}
+              >
+                <Text style={[styles.deleteModalBtnText, { color: theme.textPrimary }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                disabled={isDeleting}
+                onPress={confirmDelete}
+                style={[styles.deleteModalBtn, { backgroundColor: '#EF4444', borderWidth: 0 }]}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={[styles.deleteModalBtnText, { color: '#FFFFFF', fontWeight: '700' }]}>
+                    Yes, Delete
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -569,5 +637,78 @@ const styles = StyleSheet.create({
   notesText: {
     fontSize: 12,
     lineHeight: 18,
+  },
+  deleteFullBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 46,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  deleteFullBtnText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  deleteModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  deleteIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+  },
+  deleteModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  deleteModalDesc: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  deleteModalBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteModalBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteModalBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

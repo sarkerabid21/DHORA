@@ -31,33 +31,6 @@ export interface ClothingUploadModalProps {
   onRecognized: (attributes: RecognizedAttributes, imageUri: string) => void;
 }
 
-const PRESET_SAMPLE_GARMENTS = [
-  {
-    name: 'Mandarin Black Shirt',
-    url: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600',
-  },
-  {
-    name: 'Raw Indigo Denim',
-    url: 'https://images.unsplash.com/photo-1542272604-780c96856592?w=600',
-  },
-  {
-    name: 'White Kurta Panjabi',
-    url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600',
-  },
-  {
-    name: 'Tan Leather Penny Loafers',
-    url: 'https://images.unsplash.com/photo-1533867617858-e7b97e060509?w=600',
-  },
-  {
-    name: 'Classic Beige Trench Coat',
-    url: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=600',
-  },
-  {
-    name: 'Emerald Traditional Saree',
-    url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600',
-  },
-];
-
 export const ClothingUploadModal: React.FC<ClothingUploadModalProps> = ({
   visible,
   onClose,
@@ -66,9 +39,7 @@ export const ClothingUploadModal: React.FC<ClothingUploadModalProps> = ({
   const { theme } = useThemeStore();
   const { recognizeImage } = useWardrobeStore();
 
-  const [selectedImage, setSelectedImage] = useState<string>(
-    PRESET_SAMPLE_GARMENTS[0].url
-  );
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [base64Data, setBase64Data] = useState<string | null>(null);
   const [customUrl, setCustomUrl] = useState<string>('');
   const [showUrlInput, setShowUrlInput] = useState<boolean>(false);
@@ -262,63 +233,59 @@ export const ClothingUploadModal: React.FC<ClothingUploadModalProps> = ({
             </View>
           )}
 
-          {/* Image Preview Window */}
-          <View
-            style={[
-              styles.previewContainer,
-              { backgroundColor: theme.surfaceVariant, borderColor: theme.border },
-            ]}
-          >
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.previewImage}
-              resizeMode="cover"
-            />
-            <View style={styles.aiCleanPill}>
-              <Sparkles size={13} color="#FFFFFF" />
-              <Text style={styles.aiCleanText}>Smart Recognition Ready</Text>
+          {/* Image Preview or Clean Empty State */}
+          {selectedImage ? (
+            <View
+              style={[
+                styles.previewContainer,
+                { backgroundColor: theme.surfaceVariant, borderColor: theme.border },
+              ]}
+            >
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.previewImage}
+                resizeMode="cover"
+              />
+              <View style={styles.aiCleanPill}>
+                <Sparkles size={13} color="#FFFFFF" />
+                <Text style={styles.aiCleanText}>Smart Recognition Ready</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedImage('');
+                  setBase64Data(null);
+                }}
+                style={styles.removeImageBtn}
+              >
+                <X size={14} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-          </View>
-
-          {/* Sample Presets */}
-          <Text style={[styles.presetLabel, { color: theme.textSecondary }]}>
-            Or pick from sample garments:
-          </Text>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.presetsScroll}
-          >
-            {PRESET_SAMPLE_GARMENTS.map((preset, idx) => {
-              const isSelected = selectedImage === preset.url;
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => {
-                    setSelectedImage(preset.url);
-                    setBase64Data(null);
-                  }}
-                  style={[
-                    styles.presetThumb,
-                    {
-                      borderColor: isSelected ? theme.accent : theme.border,
-                      borderWidth: isSelected ? 2.5 : 1,
-                    },
-                  ]}
-                >
-                  <Image source={{ uri: preset.url }} style={styles.presetImage} />
-                  {isSelected && (
-                    <View
-                      style={[styles.selectedCheck, { backgroundColor: theme.accent }]}
-                    >
-                      <CheckCircle2 size={12} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handlePickFromGallery}
+              style={[
+                styles.emptyDropzone,
+                { backgroundColor: theme.surfaceVariant, borderColor: theme.border },
+              ]}
+            >
+              <View
+                style={[
+                  styles.dropzoneIconCircle,
+                  { backgroundColor: theme.accentLight || 'rgba(194, 65, 12, 0.12)' },
+                ]}
+              >
+                <ImageIcon size={30} color={theme.accent} />
+              </View>
+              <Text style={[styles.emptyDropzoneTitle, { color: theme.textPrimary }]}>
+                No Garment Selected Yet
+              </Text>
+              <Text style={[styles.emptyDropzoneSubtitle, { color: theme.textSecondary }]}>
+                Tap "Camera" or "Upload Photo" above to choose your real clothing item to digitize.
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Upload Progress Bar if processing */}
           {isUploading && (
@@ -358,6 +325,7 @@ export const ClothingUploadModal: React.FC<ClothingUploadModalProps> = ({
               title="Recognize with Gemini AI"
               variant="accent"
               size="lg"
+              disabled={!selectedImage || isUploading}
               loading={isUploading}
               icon={<Sparkles size={18} color="#FFFFFF" />}
               onPress={handleStartAnalysis}
@@ -479,36 +447,45 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-  presetLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: SPACING.sm,
-    marginBottom: SPACING.xs,
-  },
-  presetsScroll: {
-    gap: SPACING.sm,
-    paddingVertical: SPACING.xs,
-  },
-  presetThumb: {
-    width: 58,
-    height: 58,
-    borderRadius: RADIUS.md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  presetImage: {
-    width: '100%',
-    height: '100%',
-  },
-  selectedCheck: {
+  removeImageBtn: {
     position: 'absolute',
-    bottom: 3,
-    right: 3,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: 10,
+    left: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  emptyDropzone: {
+    width: '100%',
+    height: 180,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.lg,
+    marginVertical: SPACING.xs,
+  },
+  dropzoneIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  emptyDropzoneTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  emptyDropzoneSubtitle: {
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   progressContainer: {
     marginVertical: SPACING.sm,

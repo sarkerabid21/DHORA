@@ -220,10 +220,10 @@ class StorageService {
     return null;
   }
 
-  public deleteWardrobeItem(id: string, userId: string): boolean {
+  public deleteWardrobeItem(id: string, userId?: string): boolean {
     const prevLen = this.data.clothingItems.length;
     this.data.clothingItems = this.data.clothingItems.filter(
-      (i) => !(i._id === id && i.userId === userId)
+      (i) => i._id !== id
     );
     if (this.data.clothingItems.length !== prevLen) {
       this.save();
